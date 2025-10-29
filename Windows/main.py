@@ -4,18 +4,16 @@ import time
 import threading
 import sys
 
-# 全局变量管理窗口实例
+# 存储所有创建的窗口
 windows = []
-MAX_WINDOWS = 37  # 最大窗口数量限制
+MAX_WINDOWS = 52  # 最多同时显示52个窗口
 
-def set_font():
+def get_font():
     """设置支持中文的字体"""
-    try:
-        return ("SimHei", 12)
-    except:
-        return ("Arial", 12)
+    # 尝试几种常见的中文字体
+    return ("SimHei", 12)  # 黑体通常都能支持
 
-# 祝福语列表
+# 这里是一些温馨的话语
 messages = [
     "梦想成真", "别熬夜", "今天有过的开心嘛", "祝你开心",
     "期待我们下次见面", "在干嘛", "很高兴见到你",
@@ -31,81 +29,89 @@ messages = [
     "别担心，一切都会顺利的"
 ]
 
-# 背景颜色选项
+# 窗口背景颜色，选个柔和点的
 bg_colors = ["#E6F7FF", "#FFE6F2", "#F0F8FF", "#FFF0F5", "#F0FFF0"]
 
-def create_window():
-    """创建单个消息窗口"""
+def make_window():
+    """创建一个小窗口显示温馨话语"""
     global windows
     
-    # 控制窗口数量，超出上限时移除最早创建的窗口
+    # 如果窗口太多了，就把最早的关掉
     if len(windows) >= MAX_WINDOWS:
-        oldest_window = windows.pop(0)
-        if isinstance(oldest_window, tk.Toplevel) and oldest_window.winfo_exists():
-            oldest_window.destroy()
+        old_window = windows.pop(0)  # 取出第一个窗口
+        # 检查窗口是否还存在
+        if hasattr(old_window, 'winfo_exists') and old_window.winfo_exists():
+            old_window.destroy()  # 关掉它
     
     # 创建新窗口
     window = tk.Toplevel()
-    window.title("亲爱的")
-    windows.append(window)
+    window.title("给你的小心心")
+    windows.append(window)  # 记住这个窗口
     
-    # 随机配置窗口样式
+    # 随机选个背景色和话语
     bg_color = random.choice(bg_colors)
     window.configure(bg=bg_color)
     message = random.choice(messages)
     
-    # 添加消息标签
+    # 显示话语
     label = tk.Label(
         window, 
         text=message, 
-        font=set_font(),
+        font=get_font(),
         bg=bg_color,
         padx=20,
         pady=15
     )
     label.pack()
     
-    # 随机定位窗口
+    # 把窗口放在屏幕的随机位置
     screen_width = window.winfo_screenwidth()
     screen_height = window.winfo_screenheight()
     x = random.randint(0, screen_width - 200)
     y = random.randint(0, screen_height - 100)
     window.geometry(f"200x100+{x}+{y}")
     
-    # 绑定退出快捷键
-    window.bind("<Escape>", lambda e: exit_program())
+    # 按ESC键可以退出程序
+    window.bind("<Escape>", lambda e: quit_program())
     window.update()
 
-def exit_program():
-    """退出程序，清理所有窗口"""
+def quit_program():
+    """退出程序"""
+    # 关掉所有窗口
     for window in windows:
-        if isinstance(window, tk.Toplevel) and window.winfo_exists():
+        if hasattr(window, 'winfo_exists') and window.winfo_exists():
             window.destroy()
+    
+    # 关闭主窗口并退出
     root.destroy()
     sys.exit(0)
 
-def create_windows_periodically():
-    """定时创建窗口，间隔时间逐渐缩短"""
-    wait_time = 0.6  # 初始间隔
-    min_wait_time = 0.32  # 最小间隔
-    decrease_amount = 0.07  # 每次减少的间隔
+def keep_creating_windows():
+    """不停地创建新窗口"""
+    wait_time = 0.44  # 开始间隔0.44秒
+    min_wait_time = 0.2  # 最短间隔0.2秒
+    decrease_amount = 0.04  # 每次减少0.04秒
     
     while True:
-        root.after(0, create_window)  # 在主线程中创建窗口
+        # 在主线程中创建窗口
+        root.after(0, make_window)
         time.sleep(wait_time)
         
-        # 调整下次间隔时间
+        # 逐渐加快创建速度，但不会快于最短间隔
         wait_time = max(wait_time - decrease_amount, min_wait_time)
 
+# 程序入口
 if __name__ == "__main__":
+    # 创建主窗口（但不显示它）
     root = tk.Tk()
     root.withdraw()  # 隐藏主窗口
     
-    # 主窗口也绑定退出快捷键
-    root.bind("<Escape>", lambda e: exit_program())
+    # 主窗口也绑定ESC键退出
+    root.bind("<Escape>", lambda e: quit_program())
     
-    # 启动窗口创建线程
-    thread = threading.Thread(target=create_windows_periodically, daemon=True)
+    # 启动一个线程来不停地创建窗口
+    thread = threading.Thread(target=keep_creating_windows, daemon=True)
     thread.start()
     
+    # 开始事件循环
     root.mainloop()
