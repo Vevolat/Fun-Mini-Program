@@ -12,7 +12,7 @@ class KeyboardClickerApp:
         self.root = root
         self.root.title("⌨️ 智能键盘连点器")
         self.root.geometry("500x700")
-        self.root.resizable(False, False)
+        self.root.resizable(True, True)
         
         # 设置变量
         self.is_typing = False
@@ -34,36 +34,65 @@ class KeyboardClickerApp:
         
     def create_widgets(self):
         # 设置样式
-        self.root.configure(bg="#f0f0f0")
+        self.root.configure(bg="#f8f9fa")
         style = ttk.Style()
-        style.configure("Custom.TLabelframe", background="#f0f0f0", foreground="#2c3e50")
-        style.configure("TRadiobutton", background="#f0f0f0", foreground="#34495e")
-        style.configure("TLabel", background="#f0f0f0", foreground="#34495e")
-        style.configure("Accent.TButton", foreground="white", background="#3498db", 
-                       relief="flat", padding=6)
-        style.map("Accent.TButton", 
-                 background=[('active', '#2980b9')],
-                 relief=[('pressed', 'sunken')])
-        style.configure("Normal.TButton", foreground="#34495e", background="#ecf0f1", 
-                       relief="flat", padding=6)
-        style.map("Normal.TButton", 
-                 background=[('active', '#d5dbdb')],
-                 relief=[('pressed', 'sunken')])
+        style.configure("Custom.TLabelframe", background="#f8f9fa", foreground="#2c3e50", relief="solid")
+        style.configure("TRadiobutton", background="#f8f9fa", foreground="#34495e", font=("微软雅黑", 9))
+        style.configure("TLabel", background="#f8f9fa", foreground="#34495e")
+        
+        # 配置按钮样式
+        style.configure("Accent.TButton", font=("微软雅黑", 10, "bold"), padding=8,
+                       borderwidth=0, focuscolor="")
+        style.map("Accent.TButton",
+                  background=[('active', '#3498db'), ('pressed', '#2980b9'), ('!disabled', '#3498db')],
+                  foreground=[('active', 'white'), ('pressed', 'white'), ('!disabled', 'white')])
+        
+        # 配置普通按钮样式
+        style.configure("Normal.TButton", font=("微软雅黑", 9), padding=6,
+                       borderwidth=0, focuscolor="")
+        style.map("Normal.TButton",
+                  background=[('active', '#bdc3c7'), ('pressed', '#95a5a6'), ('!disabled', '#ecf0f1')],
+                  foreground=[('active', '#2c3e50'), ('pressed', '#2c3e50'), ('!disabled', '#2c3e50')])
+        
+        # 创建Canvas和滚动条
+        canvas = tk.Canvas(self.root, bg="#f8f9fa")
+        scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas, style="Custom.TLabelframe")
+        
+        # 配置滚动区域
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
         
         # 主框架
-        main_frame = ttk.Frame(self.root, padding="15")
+        main_frame = ttk.Frame(scrollable_frame, padding="20")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         main_frame.configure(style="Custom.TLabelframe")
         
+        # 放置Canvas和滚动条
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # 绑定鼠标滚轮事件
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        scrollable_frame.bind("<MouseWheel>", _on_mousewheel)
+        
         # 标题
-        title_label = ttk.Label(main_frame, text="⌨️ 智能键盘连点器", font=("微软雅黑", 20, "bold"), 
-                               foreground="#2980b9", background="#f0f0f0")
-        title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20), sticky=tk.W)
+        title_label = ttk.Label(main_frame, text="⌨️ 智能键盘连点器", font=("微软雅黑", 22, "bold"), 
+                               foreground="#2980b9", background="#f8f9fa")
+        title_label.grid(row=0, column=0, columnspan=3, pady=(0, 25), sticky=tk.W)
         
         # 连点模式选择
-        mode_frame = ttk.LabelFrame(main_frame, text="🔁 工作模式", padding="12", 
+        mode_frame = ttk.LabelFrame(main_frame, text="🔁 工作模式", padding="15", 
                                    style="Custom.TLabelframe")
-        mode_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 12))
+        mode_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 15))
         
         self.mode_var = tk.StringVar(value="single")
         single_mode_radio = ttk.Radiobutton(mode_frame, text="单个按键连点", variable=self.mode_var, 
@@ -76,119 +105,119 @@ class KeyboardClickerApp:
                                            value="record", command=self.toggle_mode, 
                                            style="TRadiobutton")
         
-        single_mode_radio.grid(row=0, column=0, padx=(0, 20), sticky=tk.W)
-        sequence_mode_radio.grid(row=0, column=1, padx=(0, 20), sticky=tk.W)
-        record_mode_radio.grid(row=0, column=2, padx=(0, 20), sticky=tk.W)
+        single_mode_radio.grid(row=0, column=0, padx=(0, 25), sticky=tk.W)
+        sequence_mode_radio.grid(row=0, column=1, padx=(0, 25), sticky=tk.W)
+        record_mode_radio.grid(row=0, column=2, padx=(0, 25), sticky=tk.W)
         
         # 单个按键设置
-        self.single_key_frame = ttk.LabelFrame(main_frame, text="🔤 单个按键设置", padding="12", 
+        self.single_key_frame = ttk.LabelFrame(main_frame, text="🔤 单个按键设置", padding="15", 
                                               style="Custom.TLabelframe")
-        self.single_key_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 12))
+        self.single_key_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 15))
         
-        ttk.Label(self.single_key_frame, text="按键:", font=("微软雅黑", 10)).grid(row=0, column=0, padx=(0, 10), sticky=tk.W)
+        ttk.Label(self.single_key_frame, text="按键:", font=("微软雅黑", 10), background="#f8f9fa").grid(row=0, column=0, padx=(0, 15), sticky=tk.W)
         self.single_key_var = tk.StringVar(value="a")
-        self.single_key_entry = ttk.Entry(self.single_key_frame, textvariable=self.single_key_var, width=12, 
-                                         font=("微软雅黑", 10))
-        self.single_key_entry.grid(row=0, column=1, padx=(0, 20))
+        self.single_key_entry = ttk.Entry(self.single_key_frame, textvariable=self.single_key_var, width=15, 
+                                         font=("微软雅黑", 11))
+        self.single_key_entry.grid(row=0, column=1, padx=(0, 25))
         
         ttk.Label(self.single_key_frame, text="说明: 输入要连点的单个按键", font=("微软雅黑", 9), 
-                 foreground="#7f8c8d").grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(5, 0))
+                 foreground="#7f8c8d", background="#f8f9fa").grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(8, 0))
         
         # 按键序列设置
-        self.sequence_frame = ttk.LabelFrame(main_frame, text="📝 按键序列设置", padding="12", 
+        self.sequence_frame = ttk.LabelFrame(main_frame, text="📝 按键序列设置", padding="15", 
                                             style="Custom.TLabelframe")
-        self.sequence_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 12))
+        self.sequence_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 15))
         self.sequence_frame.grid_remove()  # 默认隐藏
         
-        ttk.Label(self.sequence_frame, text="按键序列:", font=("微软雅黑", 10)).grid(row=0, column=0, padx=(0, 10), sticky=tk.W)
-        self.sequence_text = scrolledtext.ScrolledText(self.sequence_frame, width=45, height=5, 
+        ttk.Label(self.sequence_frame, text="按键序列:", font=("微软雅黑", 10), background="#f8f9fa").grid(row=0, column=0, padx=(0, 15), sticky=tk.W)
+        self.sequence_text = scrolledtext.ScrolledText(self.sequence_frame, width=50, height=6, 
                                                       font=("微软雅黑", 10))
-        self.sequence_text.grid(row=1, column=0, columnspan=3, pady=(5, 10))
+        self.sequence_text.grid(row=1, column=0, columnspan=3, pady=(8, 12))
         self.sequence_text.insert(tk.END, "hello world")
         
         ttk.Label(self.sequence_frame, text="说明: 每行输入一个按键，程序会按顺序连点", font=("微软雅黑", 9), 
-                 foreground="#7f8c8d").grid(row=2, column=0, columnspan=3, sticky=tk.W)
+                 foreground="#7f8c8d", background="#f8f9fa").grid(row=2, column=0, columnspan=3, sticky=tk.W)
         
         # 录制功能
-        self.record_frame = ttk.LabelFrame(main_frame, text="⏺️ 录制功能", padding="12", 
+        self.record_frame = ttk.LabelFrame(main_frame, text="⏺️ 录制功能", padding="15", 
                                           style="Custom.TLabelframe")
-        self.record_frame.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 12))
+        self.record_frame.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 15))
         self.record_frame.grid_remove()  # 默认隐藏
         
         self.record_button = ttk.Button(self.record_frame, text="开始录制", command=self.toggle_recording, 
                                        style="Normal.TButton")
-        self.record_button.grid(row=0, column=0, padx=(0, 15))
+        self.record_button.grid(row=0, column=0, padx=(0, 20))
         
         self.play_record_button = ttk.Button(self.record_frame, text="播放录制", command=self.play_recording, 
                                             state="disabled", style="Normal.TButton")
-        self.play_record_button.grid(row=0, column=1, padx=(0, 15))
+        self.play_record_button.grid(row=0, column=1, padx=(0, 20))
         
         self.clear_record_button = ttk.Button(self.record_frame, text="清空录制", command=self.clear_recording, 
                                              style="Normal.TButton")
-        self.clear_record_button.grid(row=0, column=2, padx=(0, 15))
+        self.clear_record_button.grid(row=0, column=2, padx=(0, 20))
         
         self.record_status_var = tk.StringVar(value="未录制")
         record_status_label = ttk.Label(self.record_frame, textvariable=self.record_status_var, 
-                                       font=("微软雅黑", 9), foreground="#e74c3c")
-        record_status_label.grid(row=1, column=0, columnspan=3, pady=(10, 0))
+                                       font=("微软雅黑", 9), foreground="#e74c3c", background="#f8f9fa")
+        record_status_label.grid(row=1, column=0, columnspan=3, pady=(12, 0))
         
         # 间隔时间设置
-        interval_frame = ttk.LabelFrame(main_frame, text="⏱️ 间隔时间(秒)", padding="12", 
+        interval_frame = ttk.LabelFrame(main_frame, text="⏱️ 间隔时间(秒)", padding="15", 
                                        style="Custom.TLabelframe")
-        interval_frame.grid(row=5, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 12))
+        interval_frame.grid(row=5, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 15))
         
         self.interval_var = tk.DoubleVar(value=0.1)
         interval_spinbox = ttk.Spinbox(interval_frame, from_=0.001, to=10.0, increment=0.01, 
-                                      textvariable=self.interval_var, width=12, font=("微软雅黑", 10))
-        interval_spinbox.grid(row=0, column=0, padx=(0, 10))
+                                      textvariable=self.interval_var, width=15, font=("微软雅黑", 11))
+        interval_spinbox.grid(row=0, column=0, padx=(0, 15))
         
-        ttk.Label(interval_frame, text="秒", font=("微软雅黑", 10)).grid(row=0, column=1)
+        ttk.Label(interval_frame, text="秒", font=("微软雅黑", 10), background="#f8f9fa").grid(row=0, column=1)
         
         # 点击次数设置
-        count_frame = ttk.LabelFrame(main_frame, text="🔢 点击次数 (0为无限)", padding="12", 
+        count_frame = ttk.LabelFrame(main_frame, text="🔢 点击次数 (0为无限)", padding="15", 
                                     style="Custom.TLabelframe")
-        count_frame.grid(row=6, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 12))
+        count_frame.grid(row=6, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 15))
         
         self.count_var = tk.IntVar(value=10)
         count_spinbox = ttk.Spinbox(count_frame, from_=0, to=10000, increment=1, 
-                                   textvariable=self.count_var, width=12, font=("微软雅黑", 10))
-        count_spinbox.grid(row=0, column=0, padx=(0, 10))
+                                   textvariable=self.count_var, width=15, font=("微软雅黑", 11))
+        count_spinbox.grid(row=0, column=0, padx=(0, 15))
         
         # 热键设置
-        hotkey_frame = ttk.LabelFrame(main_frame, text="⌨️ 热键设置", padding="12", 
+        hotkey_frame = ttk.LabelFrame(main_frame, text="⌨️ 热键设置", padding="15", 
                                      style="Custom.TLabelframe")
-        hotkey_frame.grid(row=7, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 15))
+        hotkey_frame.grid(row=7, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 20))
         
-        ttk.Label(hotkey_frame, text="开始热键:", font=("微软雅黑", 10)).grid(row=0, column=0, padx=(0, 10), sticky=tk.W)
-        self.start_key_btn = ttk.Button(hotkey_frame, text=self.start_key.upper(), width=10, 
+        ttk.Label(hotkey_frame, text="开始热键:", font=("微软雅黑", 10), background="#f8f9fa").grid(row=0, column=0, padx=(0, 15), sticky=tk.W)
+        self.start_key_btn = ttk.Button(hotkey_frame, text=self.start_key.upper(), width=12, 
                                        command=self.change_start_key, style="Normal.TButton")
-        self.start_key_btn.grid(row=0, column=1, padx=(0, 20))
+        self.start_key_btn.grid(row=0, column=1, padx=(0, 25))
         
-        ttk.Label(hotkey_frame, text="停止热键:", font=("微软雅黑", 10)).grid(row=0, column=2, padx=(0, 10), sticky=tk.W)
-        self.stop_key_btn = ttk.Button(hotkey_frame, text=self.stop_key.upper(), width=10, 
+        ttk.Label(hotkey_frame, text="停止热键:", font=("微软雅黑", 10), background="#f8f9fa").grid(row=0, column=2, padx=(0, 15), sticky=tk.W)
+        self.stop_key_btn = ttk.Button(hotkey_frame, text=self.stop_key.upper(), width=12, 
                                       command=self.change_stop_key, style="Normal.TButton")
-        self.stop_key_btn.grid(row=0, column=3, padx=(0, 10))
+        self.stop_key_btn.grid(row=0, column=3, padx=(0, 15))
         
         # 控制按钮
-        control_frame = ttk.Frame(main_frame)
-        control_frame.grid(row=8, column=0, columnspan=3, pady=(15, 15))
+        control_frame = ttk.Frame(main_frame, style="Custom.TLabelframe")
+        control_frame.grid(row=8, column=0, columnspan=3, pady=(20, 25))
         
         self.start_button = ttk.Button(control_frame, text="▶ 开始连点", command=self.start_typing, 
                                       style="Accent.TButton")
         self.stop_button = ttk.Button(control_frame, text="⏹ 停止连点", command=self.stop_typing, 
                                      state="disabled", style="Accent.TButton")
         
-        self.start_button.grid(row=0, column=0, padx=(0, 15))
-        self.stop_button.grid(row=0, column=1, padx=(0, 15))
+        self.start_button.grid(row=0, column=0, padx=(0, 20))
+        self.stop_button.grid(row=0, column=1, padx=(0, 20))
         
         # 状态栏
-        status_frame = ttk.Frame(main_frame)
+        status_frame = ttk.Frame(main_frame, style="Custom.TLabelframe")
         status_frame.grid(row=9, column=0, columnspan=3, sticky=(tk.W, tk.E))
         
         self.status_var = tk.StringVar(value="就绪 - 点击'开始连点'或按 '{}' 键开始连点".format(self.start_key.upper()))
-        status_label = ttk.Label(status_frame, textvariable=self.status_var, font=("微软雅黑", 9),
-                                foreground="#7f8c8d", relief="sunken", padding=8)
-        status_label.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        status_label = ttk.Label(status_frame, textvariable=self.status_var, font=("微软雅黑", 10),
+                                foreground="#7f8c8d", background="#ecf0f1", relief="flat", padding=10)
+        status_label.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(5, 0))
         
         # 配置列权重
         main_frame.columnconfigure(0, weight=1)
@@ -451,6 +480,15 @@ class KeyboardClickerApp:
             key = event.name
             # 过滤特殊键
             if key.lower() not in ['shift', 'ctrl', 'alt', 'win', 'enter', 'esc', 'backspace']:
+                # 先解绑旧热键
+                try:
+                    if key_type == "start":
+                        keyboard.remove_hotkey(self.start_key)
+                    else:
+                        keyboard.remove_hotkey(self.stop_key)
+                except:
+                    pass  # 忽略解绑错误
+                
                 # 更新热键
                 if key_type == "start":
                     self.start_key = key.lower()
@@ -516,10 +554,10 @@ class KeyboardClickerApp:
                 config = json.load(f)
                 
             # 应用配置
-            self.mode_var.set(config.get("mode", "single"))
-            self.single_key_var.set(config.get("single_key", "a"))
-            self.interval_var.set(config.get("interval", 0.1))
-            self.count_var.set(config.get("clicks", 10))
+            self.mode_var.set   集(config.get("mode", "single"))
+            self.single_key_var.set   集(config.get("single_key", "a"))
+            self.interval_var.set   集(config.get("interval", 0.1))
+            self.count_var.set   集(config.get("clicks", 10))
             self.start_key = config.get("start_key", "f8")
             self.stop_key = config.get("stop_key", "f9")
             self.recorded_keys = config.get("recorded_keys", [])
@@ -552,17 +590,17 @@ class KeyboardClickerApp:
             print(f"加载配置失败: {e}")
             messagebox.showerror("错误", f"加载配置失败: {e}")
     
-    def on_closing(self):
+       def on_closing(自我):def on_closing(self):
         """窗口关闭事件"""
         # 保存当前配置
         self.save_config()
         self.stop_typing()
         self.root.destroy()
 
-def main   主要():
+def main():
     root = tk.Tk()
-    app = KeyboardClickerApp(root)
-    root.mainloop()
+    app = app = KeyboardClickerApp（root）KeyboardClickerApp(root)
+    root.   root mainloop ()mainloop()
 
 if __name__ == "__main__":
     main()
